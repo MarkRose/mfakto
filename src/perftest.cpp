@@ -1789,29 +1789,36 @@ if (mystuff.more_classes == 1)  strcat(program_options, " -DMORE_CLASSES");
       char *buildLog = NULL;
       size_t buildLogSize = 0;
       logstatus = clGetProgramBuildInfo (program, devices[devnumber], CL_PROGRAM_BUILD_LOG,
-                buildLogSize, buildLog, &buildLogSize);
+                0, NULL, &buildLogSize);
       if(logstatus != CL_SUCCESS)
       {
-        std::cerr << "Error " << logstatus << " (" << ClErrorString(logstatus) << "): clGetProgramBuildInfo failed.";
+        std::cerr << "Error " << logstatus << " (" << ClErrorString(logstatus) << "): clGetProgramBuildInfo failed.\n";
+        buildLogSize = 0;
       }
-      buildLog = (char*)calloc(buildLogSize,1);
-      if(buildLog == NULL)
+      if (buildLogSize > 0)
       {
-        std::cerr << "\noom\n";
+        buildLog = (char*)calloc(buildLogSize + 1, 1);
+        if(buildLog == NULL)
+        {
+          std::cerr << "\noom\n";
+        }
+        else
+        {
+          logstatus = clGetProgramBuildInfo (program, devices[devnumber], CL_PROGRAM_BUILD_LOG,
+                    buildLogSize, buildLog, NULL);
+          if(logstatus != CL_SUCCESS)
+          {
+            std::cerr << "Error " << logstatus << " (" << ClErrorString(logstatus) << "): clGetProgramBuildInfo failed.\n";
+          }
+          else
+          {
+            std::cout << " \n\tBUILD OUTPUT\n";
+            std::cout << buildLog << std::endl;
+            std::cout << " \tEND OF BUILD OUTPUT\n";
+          }
+          free(buildLog);
+        }
       }
-
-      logstatus = clGetProgramBuildInfo (program, devices[devnumber], CL_PROGRAM_BUILD_LOG,
-                buildLogSize, buildLog, NULL);
-      if(logstatus != CL_SUCCESS)
-      {
-        std::cerr << "Error " << logstatus << " (" << ClErrorString(logstatus) << "): clGetProgramBuildInfo failed.";
-        free(buildLog);
-      }
-
-      std::cout << " \n\tBUILD OUTPUT\n";
-      std::cout << buildLog << std::endl;
-      std::cout << " \tEND OF BUILD OUTPUT\n";
-      free(buildLog);
     if (status != CL_SUCCESS)
     {
       std::cerr<<"Error " << status << " (" << ClErrorString(status) << "): clBuildProgram\n";
