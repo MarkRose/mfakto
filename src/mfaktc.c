@@ -1357,8 +1357,7 @@ int main(int argc, char **argv)
     else if(!strcmp((char*)"--CLtest", argv[i]))
     {
       read_config(&mystuff);
-      CL_test(devicenumber);
-      return ERR_OK;
+      return CL_test(devicenumber);
     }
     else if(!strcmp((char*)"--gpusievetest", argv[i]))
     {

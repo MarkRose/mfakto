@@ -38,7 +38,7 @@ int load_kernels(cl_int *devnumber);
 void set_gpu_type();
 int init_CLstreams(int gs_reinit_only);
 int cleanup_CL(void);
-void CL_test(cl_int devicenumber);
+int CL_test(cl_int devicenumber);
 int tf_class_opencl(cl_ulong k_min, cl_ulong k_max, mystuff_t *mystuff, enum GPUKernels use_kernel);
 cl_int get_device_extensions(cl_device_id device);
 cl_int build_program(cl_program program, cl_device_id device, const char *options);

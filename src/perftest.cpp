@@ -1452,7 +1452,7 @@ GPUKernels test_fastest_kernel()
 
 /* copy of the init and test functions for troubleshooting and playing around */
 
-void CL_test(cl_int devnumber)
+int CL_test(cl_int devnumber)
 {
   cl_int status;
   size_t dev_s;
@@ -1823,7 +1823,7 @@ if (mystuff.more_classes == 1)  strcat(program_options, " -DMORE_CLASSES");
   if (status != CL_SUCCESS)
   {
     // the kernels can't be created from a program that failed to build
-    return;
+    return ERR_INIT;
   }
 
   /* get kernel by name */
@@ -2076,6 +2076,7 @@ if (mystuff.more_classes == 1)  strcat(program_options, " -DMORE_CLASSES");
     printArray("RES", mystuff.h_RES, 32, 0);
 
   }
+  return ERR_OK;
 }
 
 #ifdef __cplusplus
