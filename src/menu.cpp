@@ -252,7 +252,8 @@ static void handle_menu(mystuff_t *mystuff)
   }
 }
 
-void check_and_do_reinit(mystuff_t *saved_mystuff, mystuff_t *mystuff)
+/* returns non-zero if the GPU sieve could not be set up again with the new settings */
+int check_and_do_reinit(mystuff_t *saved_mystuff, mystuff_t *mystuff)
 {
   if (mystuff->gpu_sieving)
   {
@@ -263,8 +264,12 @@ void check_and_do_reinit(mystuff_t *saved_mystuff, mystuff_t *mystuff)
       if (mystuff->verbosity > 0)
         printf("Reinitializing GPU sieve\n");
       gpusieve_free(mystuff);
-      init_CLstreams(1);
-      gpusieve_init_exponent(mystuff);
+      if (init_CLstreams(1) != 0 || gpusieve_init_exponent(mystuff) != 0)
+      {
+        // the sieve is unusable: continuing would sieve with uninitialized data and could miss factors
+        std::cerr << "Error: reinitializing the GPU sieve failed\n";
+        return 1;
+      }
     }
   }
   else
@@ -285,8 +290,11 @@ void check_and_do_reinit(mystuff_t *saved_mystuff, mystuff_t *mystuff)
 #endif
     }
   }
+  return 0;
 }
 
+/* returns the last key pressed, 0 if there was none, or -1 if the GPU sieve could not be set up again after the
+   settings changed */
 int handle_kb_input(mystuff_t *mystuff)
 {
   int last_key = 0;
@@ -373,7 +381,7 @@ int handle_kb_input(mystuff_t *mystuff)
       break;
     }
   }
-  check_and_do_reinit(&saved_mystuff, mystuff);
+  if (check_and_do_reinit(&saved_mystuff, mystuff) != 0) return -1;
 
   return last_key;
 }

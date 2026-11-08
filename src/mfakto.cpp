@@ -3391,7 +3391,14 @@ int tf_class_opencl(cl_ulong k_min, cl_ulong k_max, mystuff_t *mystuff, enum GPU
   print_status_line(mystuff);
 
   /* only adjust sieve_primes if there was no keyboard input handled */
-  if(handle_kb_input(mystuff) == 0 && mystuff->stats.cpu_wait >= 0.0f)
+  int kb_input = handle_kb_input(mystuff);
+  if (kb_input < 0)
+  {
+    std::cerr << "Error: GPU sieve initialization failed in tf_class_opencl()\n";
+    return RET_ERROR;
+  }
+
+  if(kb_input == 0 && mystuff->stats.cpu_wait >= 0.0f)
   {
 /* if SievePrimesAdjust is enable lets try to get 2 % < CPU wait < 6% */
     if(mystuff->sieve_primes_adjust == 1 && mystuff->stats.cpu_wait > 6.0f && mystuff->sieve_primes < mystuff->sieve_primes_upper_limit && (mystuff->mode != MODE_SELFTEST_SHORT))

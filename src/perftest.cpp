@@ -1119,7 +1119,8 @@ GPUKernels test_cpu_tf_kernels(cl_uint par)
   return fastest_kernel;
 }
 
-GPUKernels test_gpu_tf_kernels(cl_uint par)
+/* *failed is set if a GPU sieve initialization or a factoring run failed: the timings are then of no use */
+GPUKernels test_gpu_tf_kernels(cl_uint par, int *failed)
 {
   struct timeval timer;
   double time1, time2[UNKNOWN_GS_KERNEL-BARRETT79_MUL32_GS], ghzdt, ghz = 0.0;
@@ -1133,22 +1134,38 @@ GPUKernels test_gpu_tf_kernels(cl_uint par)
   cl_uint bit_min = mystuff.bit_min;
   cl_uint bit_max_stage = mystuff.bit_max_stage;
 
+  *failed = 0;
   mystuff.threads_per_grid = 256;
 
   cl_uint exp_save = mystuff.exponent;
   mystuff.exponent = 0;
   run_calc_bit_to_clear(0, 0, NULL, 0); // reset the internal static so it will copy the exponent to the device again.
   mystuff.exponent = exp_save;
-  gpusieve_init_exponent(&mystuff);
+  if (gpusieve_init_exponent(&mystuff) != 0)
+  {
+    printf("ERROR: GPU sieve initialization for M%u failed\n", mystuff.exponent);
+    *failed = 1;
+    return UNKNOWN_KERNEL;
+  }
   while(!class_needed(mystuff.exponent, k, use_class)) use_class++;
-  gpusieve_init_class(&mystuff, k+use_class);
+  if (gpusieve_init_class(&mystuff, k+use_class) != 0)
+  {
+    printf("ERROR: GPU sieve initialization for class %u failed\n", use_class);
+    *failed = 1;
+    return UNKNOWN_KERNEL;
+  }
 
   printf("\n exponent=%u ... calibrating\r", mystuff.exponent); fflush(stdout);
   // calibrate to the device so we have ~ 2..4 seconds per kernel (at default with par = 10)
   do
   {
     timer_init(&timer);
-    tf_class_opencl (k+use_class, k+use_class+num_fcs*mystuff.num_classes, &mystuff, BARRETT79_MUL32_GS);
+    if (tf_class_opencl (k+use_class, k+use_class+num_fcs*mystuff.num_classes, &mystuff, BARRETT79_MUL32_GS) == RET_ERROR)
+    {
+      printf("\nERROR: factoring run failed while calibrating\n");
+      *failed = 1;
+      return UNKNOWN_KERNEL;
+    }
     time1 = (double)timer_diff(&timer);
 //  printf("%llu FCs, %f ms\n", num_fcs, time1/1000.0);
     num_fcs <<=1;
@@ -1162,7 +1179,12 @@ GPUKernels test_gpu_tf_kernels(cl_uint par)
   for (use_kernel = BARRETT79_MUL32_GS; use_kernel < UNKNOWN_GS_KERNEL; use_kernel++)
   {
     timer_init(&timer);
-    tf_class_opencl (k+use_class, k+use_class+num_fcs*mystuff.num_classes, &mystuff, (GPUKernels)use_kernel);
+    if (tf_class_opencl (k+use_class, k+use_class+num_fcs*mystuff.num_classes, &mystuff, (GPUKernels)use_kernel) == RET_ERROR)
+    {
+      printf("\nERROR: factoring run with kernel %s failed\n", kernel_info[use_kernel].kernelname);
+      *failed = 1;
+      return UNKNOWN_KERNEL;
+    }
     time1 = (double)timer_diff(&timer);
     putchar('.'); fflush(stdout);
     insert_time(time1, time2, use_kernel, idxs, use_kernel - BARRETT79_MUL32_GS);
@@ -1260,8 +1282,9 @@ int test_tf_kernels(cl_uint par, int devicenumber)
       mystuff.bit_max_assignment = 69;
       mystuff.bit_max_stage = 69;
       mystuff.exponent=exps[i];
-      test_gpu_tf_kernels((cl_uint) par);
-      if (QUIT_COUNT(&mystuff)) break;
+      int failed;
+      test_gpu_tf_kernels((cl_uint) par, &failed);
+      if (failed || QUIT_COUNT(&mystuff)) break;
     }
   }
   else
@@ -1400,7 +1423,8 @@ GPUKernels test_fastest_kernel()
 {
   if (mystuff.gpu_sieving == 1)
   {
-    return test_gpu_tf_kernels(10);
+    int failed;
+    return test_gpu_tf_kernels(10, &failed); // on failure this returns UNKNOWN_KERNEL
   }
   else
   {
