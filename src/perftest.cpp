@@ -1812,10 +1812,19 @@ if (mystuff.more_classes == 1)  strcat(program_options, " -DMORE_CLASSES");
       std::cout << buildLog << std::endl;
       std::cout << " \tEND OF BUILD OUTPUT\n";
       free(buildLog);
-    std::cerr<<"Error " << status << " (" << ClErrorString(status) << "): clBuildProgram\n";
+    if (status != CL_SUCCESS)
+    {
+      std::cerr<<"Error " << status << " (" << ClErrorString(status) << "): clBuildProgram\n";
+    }
   }
 
   free(source);
+
+  if (status != CL_SUCCESS)
+  {
+    // the kernels can't be created from a program that failed to build
+    return;
+  }
 
   /* get kernel by name */
 
