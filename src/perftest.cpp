@@ -1842,6 +1842,11 @@ if (mystuff.more_classes == 1)  strcat(program_options, " -DMORE_CLASSES");
     if(status != CL_SUCCESS)
     {
       std::cerr<<"Error " << status << " (" << ClErrorString(status) << "): Creating Kernel " << kernel_info[i].kernelname << " from program. (clCreateKernel)\n";
+      if (i == _TEST_MOD_)
+      {
+        // this is the kernel the test below runs
+        return ERR_INIT;
+      }
     }
   }
 
